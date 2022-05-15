@@ -2,7 +2,7 @@
 
 WebSocket connections for [axum] directly using [tungstenite].
 
-[![Build status](https://github.com/davidpdrsn/axum-tungstenite/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/davidpdrsn/axum-tungstenite/actions/workflows/CI.yml)
+[![CI](https://github.com/davidpdrsn/axum-tungstenite/actions/workflows/CI.yaml/badge.svg)](https://github.com/davidpdrsn/axum-tungstenite/actions/workflows/CI.yaml)
 [![Crates.io](https://img.shields.io/crates/v/axum-tungstenite)](https://crates.io/crates/axum-tungstenite)
 [![Documentation](https://docs.rs/axum-tungstenite/badge.svg)](https://docs.rs/axum-tungstenite)
 
