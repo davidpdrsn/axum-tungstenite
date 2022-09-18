@@ -129,7 +129,11 @@ use tokio_tungstenite::{
 };
 
 #[doc(no_inline)]
-pub use tokio_tungstenite::tungstenite::{Error, Message};
+pub use tokio_tungstenite::tungstenite::error::{
+    CapacityError, Error, ProtocolError, TlsError, UrlError,
+};
+#[doc(no_inline)]
+pub use tokio_tungstenite::tungstenite::Message;
 
 /// Extractor for establishing WebSocket connections.
 ///
