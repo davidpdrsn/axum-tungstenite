@@ -21,7 +21,7 @@ http-body = "0.4.4"
 hyper = "0.14"
 sha-1 = "0.10.0"
 tokio = { version = "1.0", features = ["rt"] }
-tokio-tungstenite = "0.17.1"
+tokio-tungstenite = "0.18.0"
 
 [dev-dependencies]
 axum = "0.5"
