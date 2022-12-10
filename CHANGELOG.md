@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- None.
+
+# 0.2.0 (10. December, 2022)
+
 - **changed:** Update to axum-core 0.3, which requires axum 0.6 ([#6])
 - **changed:** Update to tokio-tungstenite 0.18 ([#6])
 - **added:** Allow configuration of client frame masking ([#3])
