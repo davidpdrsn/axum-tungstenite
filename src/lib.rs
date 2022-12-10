@@ -103,7 +103,7 @@
 use self::rejection::*;
 use async_trait::async_trait;
 use axum_core::{
-    extract::{FromRequest, RequestParts},
+    extract::FromRequestParts,
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
@@ -113,6 +113,7 @@ use futures_util::{
 };
 use http::{
     header::{self, HeaderMap, HeaderName, HeaderValue},
+    request::Parts,
     Method, StatusCode,
 };
 use hyper::upgrade::{OnUpgrade, Upgraded};
@@ -259,39 +260,38 @@ impl WebSocketUpgrade {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for WebSocketUpgrade
+impl<S> FromRequestParts<S> for WebSocketUpgrade
 where
-    B: Send,
+    S: Sync,
 {
     type Rejection = WebSocketUpgradeRejection;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        if req.method() != Method::GET {
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if parts.method != Method::GET {
             return Err(MethodNotGet.into());
         }
 
-        if !header_contains(req, header::CONNECTION, "upgrade") {
+        if !header_contains(parts, header::CONNECTION, "upgrade") {
             return Err(InvalidConnectionHeader.into());
         }
 
-        if !header_eq(req, header::UPGRADE, "websocket") {
+        if !header_eq(parts, header::UPGRADE, "websocket") {
             return Err(InvalidUpgradeHeader.into());
         }
 
-        if !header_eq(req, header::SEC_WEBSOCKET_VERSION, "13") {
+        if !header_eq(parts, header::SEC_WEBSOCKET_VERSION, "13") {
             return Err(InvalidWebSocketVersionHeader.into());
         }
 
-        let sec_websocket_key =
-            if let Some(key) = req.headers_mut().remove(header::SEC_WEBSOCKET_KEY) {
-                key
-            } else {
-                return Err(WebSocketKeyHeaderMissing.into());
-            };
+        let sec_websocket_key = if let Some(key) = parts.headers.remove(header::SEC_WEBSOCKET_KEY) {
+            key
+        } else {
+            return Err(WebSocketKeyHeaderMissing.into());
+        };
 
-        let on_upgrade = req.extensions_mut().remove::<OnUpgrade>().unwrap();
+        let on_upgrade = parts.extensions.remove::<OnUpgrade>().unwrap();
 
-        let sec_websocket_protocol = req.headers().get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
+        let sec_websocket_protocol = parts.headers.get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
         Ok(Self {
             config: Default::default(),
@@ -303,16 +303,16 @@ where
     }
 }
 
-fn header_eq<B>(req: &RequestParts<B>, key: HeaderName, value: &'static str) -> bool {
-    if let Some(header) = req.headers().get(&key) {
+fn header_eq(req: &Parts, key: HeaderName, value: &'static str) -> bool {
+    if let Some(header) = req.headers.get(&key) {
         header.as_bytes().eq_ignore_ascii_case(value.as_bytes())
     } else {
         false
     }
 }
 
-fn header_contains<B>(req: &RequestParts<B>, key: HeaderName, value: &'static str) -> bool {
-    let header = if let Some(header) = req.headers().get(&key) {
+fn header_contains(req: &Parts, key: HeaderName, value: &'static str) -> bool {
+    let header = if let Some(header) = req.headers.get(&key) {
         header
     } else {
         return false;
@@ -393,7 +393,7 @@ fn sign(key: &[u8]) -> HeaderValue {
     let mut sha1 = Sha1::default();
     sha1.update(key);
     sha1.update(&b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"[..]);
-    let b64 = Bytes::from(base64::encode(&sha1.finalize()));
+    let b64 = Bytes::from(base64::encode(sha1.finalize()));
     HeaderValue::from_maybe_shared(b64).expect("base64 is a valid value")
 }
 
