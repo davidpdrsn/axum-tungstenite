@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow configuration of client frame masking ([#3])
 - Update to axum-core 0.3, which requires axum 0.6
 - Update to tokio-tungstenite 0.18
+- Add `on_failed_upgrade` callback to `WebSocketUpgrade`
 
 [#3]: https://github.com/davidpdrsn/axum-tungstenite/pull/3
 
