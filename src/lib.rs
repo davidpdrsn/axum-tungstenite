@@ -151,9 +151,33 @@ pub struct WebSocketUpgrade<F = DefaultOnFailedUpdgrade> {
 }
 
 impl<C> WebSocketUpgrade<C> {
-    /// Set the size of the internal message send queue.
-    pub fn max_send_queue(mut self, max: usize) -> Self {
-        self.config.max_send_queue = Some(max);
+    /// The target minimum size of the write buffer to reach before writing the data
+    /// to the underlying stream.
+    ///
+    /// The default value is 128 KiB.
+    ///
+    /// If set to `0` each message will be eagerly written to the underlying stream.
+    /// It is often more optimal to allow them to buffer a little, hence the default value.
+    ///
+    /// Note: [`flush`](SinkExt::flush) will always fully write the buffer regardless.
+    pub fn write_buffer_size(mut self, size: usize) -> Self {
+        self.config.write_buffer_size = size;
+        self
+    }
+
+    /// The max size of the write buffer in bytes. Setting this can provide backpressure
+    /// in the case the write buffer is filling up due to write errors.
+    ///
+    /// The default value is unlimited.
+    ///
+    /// Note: The write buffer only builds up past [`write_buffer_size`](Self::write_buffer_size)
+    /// when writes to the underlying stream are failing. So the **write buffer can not
+    /// fill up if you are not observing write errors even if not flushing**.
+    ///
+    /// Note: Should always be at least [`write_buffer_size + 1 message`](Self::write_buffer_size)
+    /// and probably a little more depending on error handling strategy.
+    pub fn max_write_buffer_size(mut self, max: usize) -> Self {
+        self.config.max_write_buffer_size = max;
         self
     }
 
@@ -169,7 +193,7 @@ impl<C> WebSocketUpgrade<C> {
         self
     }
 
-    /// Set true to accept unmasked frames from clients (defaults to false)
+    /// Allow server to accept unmasked frames (defaults to false)
     pub fn accept_unmasked_frames(mut self, accept: bool) -> Self {
         self.config.accept_unmasked_frames = accept;
         self
@@ -437,10 +461,12 @@ impl Sink<Message> for WebSocket {
 }
 
 fn sign(key: &[u8]) -> HeaderValue {
+    use base64::engine::Engine as _;
+
     let mut sha1 = Sha1::default();
     sha1.update(key);
     sha1.update(&b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"[..]);
-    let b64 = Bytes::from(base64::encode(sha1.finalize()));
+    let b64 = Bytes::from(base64::engine::general_purpose::STANDARD.encode(sha1.finalize()));
     HeaderValue::from_maybe_shared(b64).expect("base64 is a valid value")
 }
 
