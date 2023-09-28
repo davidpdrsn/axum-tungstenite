@@ -353,13 +353,16 @@ where
             return Err(InvalidWebSocketVersionHeader.into());
         }
 
-        let sec_websocket_key = if let Some(key) = parts.headers.remove(header::SEC_WEBSOCKET_KEY) {
-            key
-        } else {
-            return Err(WebSocketKeyHeaderMissing.into());
-        };
+        let sec_websocket_key = parts
+            .headers
+            .get(header::SEC_WEBSOCKET_KEY)
+            .ok_or(WebSocketKeyHeaderMissing)?
+            .clone();
 
-        let on_upgrade = parts.extensions.remove::<OnUpgrade>().unwrap();
+        let on_upgrade = parts
+            .extensions
+            .remove::<OnUpgrade>()
+            .ok_or(ConnectionNotUpgradable)?;
 
         let sec_websocket_protocol = parts.headers.get(header::SEC_WEBSOCKET_PROTOCOL).cloned();
 
@@ -529,6 +532,12 @@ pub mod rejection {
             }
 
             impl std::error::Error for $name {}
+
+            impl Default for $name {
+                fn default() -> Self {
+                    Self
+                }
+            }
         };
     }
 
@@ -565,6 +574,20 @@ pub mod rejection {
         #[body = "`Sec-WebSocket-Key` header missing"]
         /// Rejection type for [`WebSocketUpgrade`](super::WebSocketUpgrade).
         pub struct WebSocketKeyHeaderMissing;
+    }
+
+    define_rejection! {
+        #[status = UPGRADE_REQUIRED]
+        #[body = "WebSocket request couldn't be upgraded since no upgrade state was present"]
+        /// Rejection type for [`WebSocketUpgrade`](super::WebSocketUpgrade).
+        ///
+        /// This rejection is returned if the connection cannot be upgraded for example if the
+        /// request is HTTP/1.0.
+        ///
+        /// See [MDN] for more details about connection upgrades.
+        ///
+        /// [MDN]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Upgrade
+        pub struct ConnectionNotUpgradable;
     }
 
     macro_rules! composite_rejection {
@@ -636,6 +659,7 @@ pub mod rejection {
             InvalidUpgradeHeader,
             InvalidWebSocketVersionHeader,
             WebSocketKeyHeaderMissing,
+            ConnectionNotUpgradable,
         }
     }
 }
