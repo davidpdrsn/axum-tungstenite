@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-- None.
+- **changed:** Replaced usage of removed lint
 
 # 0.3.0 (02. August, 2022)
 
