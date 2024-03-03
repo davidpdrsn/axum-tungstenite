@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-- None.
+- **changed:** Update tokio-tungstenite to 0.21
+- **changed:** Update axum to 0.7, necessitating updating axum-core to 0.4, and http to 1.0 ([#12])
+- **changed:** Replaced usage of removed lint
 
 # 0.3.0 (02. August, 2022)
 
