@@ -49,7 +49,8 @@
 //!     }
 //! }
 //! # async {
-//! # axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
+//! # let listener = tokio::net::TcpListener::bind("localhost").await.unwrap();
+//! # axum::serve(listener, app.into_make_service()).await.unwrap();
 //! # };
 //! ```
 //!
@@ -94,7 +95,7 @@
     missing_debug_implementations,
     missing_docs
 )]
-#![deny(unreachable_pub, private_in_public)]
+#![deny(unreachable_pub)]
 #![allow(elided_lifetimes_in_paths, clippy::type_complexity)]
 #![forbid(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg))]
@@ -117,6 +118,7 @@ use http::{
     Method, StatusCode,
 };
 use hyper::upgrade::{OnUpgrade, Upgraded};
+use hyper_util::rt::tokio::TokioIo;
 use sha1::{Digest, Sha1};
 use std::{
     borrow::Cow,
@@ -255,7 +257,7 @@ impl<C> WebSocketUpgrade<C> {
 
         tokio::spawn(async move {
             let upgraded = match on_upgrade.await {
-                Ok(upgraded) => upgraded,
+                Ok(upgraded) => TokioIo::new(upgraded),
                 Err(err) => {
                     on_failed_upgrade.call(err);
                     return;
@@ -396,16 +398,20 @@ fn header_contains(req: &Parts, key: HeaderName, value: &'static str) -> bool {
     }
 }
 
+/// Since hyper 1.0, they don't use the Tokio traits anymore, but provide
+/// an adapter to use them.
+pub type UpgradedTIO = TokioIo<Upgraded>;
+
 /// A stream of WebSocket messages.
 #[derive(Debug)]
 pub struct WebSocket {
-    inner: WebSocketStream<Upgraded>,
+    inner: WebSocketStream<UpgradedTIO>,
     protocol: Option<HeaderValue>,
 }
 
 impl WebSocket {
     /// Consume `self` and get the inner [`tokio_tungstenite::WebSocketStream`].
-    pub fn into_inner(self) -> WebSocketStream<Upgraded> {
+    pub fn into_inner(self) -> WebSocketStream<UpgradedTIO> {
         self.inner
     }
 
